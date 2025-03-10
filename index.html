@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Онлайн форма с чатом</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #f4f4f4;
+        }
+
+        .container {
+            width: 400px;
+            background-color: #fff;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .icon {
+            text-align: center;
+            padding: 20px;
+            background-color: #007bff;
+        }
+
+        .icon img {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+        }
+
+        .chat {
+            padding: 20px;
+        }
+
+        .chat input {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+
+        .chat button {
+            width: 100%;
+            padding: 10px;
+            background-color: #007bff;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .chat button:hover {
+            background-color: #0056b3;
+        }
+
+        .messages {
+            max-height: 200px;
+            overflow-y: auto;
+            margin-bottom: 10px;
+            border: 1px solid #ccc;
+            padding: 10px;
+            border-radius: 5px;
+        }
+
+        .message {
+            margin-bottom: 10px;
+        }
+
+        .message .username {
+            font-weight: bold;
+            color: #007bff;
+        }
+
+        .message .text {
+            margin-left: 10px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="icon">
+        <img src="https://via.placeholder.com/80" alt="Иконка">
+    </div>
+    <div class="chat">
+        <div class="messages" id="messages"></div>
+        <input type="text" id="nicknameInput" placeholder="Введите ваш ник...">
+        <input type="text" id="messageInput" placeholder="Введите ваше сообщение..." disabled>
+        <button id="sendButton" disabled>Отправить</button>
+    </div>
+</div>
+
+<script>
+    const messagesDiv = document.getElementById('messages');
+    const nicknameInput = document.getElementById('nicknameInput');
+    const messageInput = document.getElementById('messageInput');
+    const sendButton = document.getElementById('sendButton');
+
+    let nickname = localStorage.getItem('nickname') || null;
+    let messages = JSON.parse(localStorage.getItem('messages')) || [];
+
+    // Восстановление ника и сообщений при загрузке страницы
+    if (nickname) {
+        nicknameInput.value = nickname;
+        nicknameInput.disabled = true;
+        messageInput.disabled = false;
+        sendButton.disabled = false;
+    }
+
+    // Отображение сохраненных сообщений
+    messages.forEach(msg => {
+        const messageElement = document.createElement('div');
+        messageElement.classList.add('message');
+        messageElement.innerHTML = `
+            <span class="username">${msg.nickname}:</span>
+            <span class="text">${msg.text}</span>
+        `;
+        messagesDiv.appendChild(messageElement);
+    });
+
+    // Прокрутка чата вниз
+    messagesDiv.scrollTop = messagesDiv.scrollHeight;
+
+    // Обработчик ввода ника
+    nicknameInput.addEventListener('input', () => {
+        if (nicknameInput.value.trim() !== '') {
+            messageInput.disabled = false;
+            sendButton.disabled = false;
+        } else {
+            messageInput.disabled = true;
+            sendButton.disabled = true;
+        }
+    });
+
+    // Обработчик отправки сообщения
+    sendButton.addEventListener('click', () => {
+        const messageText = messageInput.value.trim();
+        if (messageText !== '') {
+            if (!nickname) {
+                nickname = nicknameInput.value.trim();
+                localStorage.setItem('nickname', nickname); // Сохраняем ник
+                nicknameInput.disabled = true; // Блокируем поле ввода ника
+            }
+
+            // Сохраняем сообщение
+            const message = { nickname, text: messageText };
+            messages.push(message);
+            localStorage.setItem('messages', JSON.stringify(messages)); // Сохраняем сообщения
+
+            // Добавляем сообщение в чат
+            const messageElement = document.createElement('div');
+            messageElement.classList.add('message');
+            messageElement.innerHTML = `
+                <span class="username">${nickname}:</span>
+                <span class="text">${messageText}</span>
+            `;
+            messagesDiv.appendChild(messageElement);
+
+            // Очищаем поле ввода сообщения
+            messageInput.value = '';
+
+            // Прокручиваем чат вниз
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+    });
+
+    // Обработчик нажатия Enter в поле ввода сообщения
+    messageInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            sendButton.click();
+        }
+    });
+</script>
+
+</body>
+</html>
