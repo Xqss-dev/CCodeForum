@@ -3,230 +3,151 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Многопользовательский чат</title>
+    <title>Чат с Firebase</title>
     <style>
         body {
             font-family: Arial, sans-serif;
+            background-color: #f2f2f2;
             margin: 0;
             padding: 0;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            background-color: #f4f4f4;
         }
 
-        .container {
-            width: 400px;
-            height: 600px;
-            background-color: #fff;
-            border-radius: 10px;
+        #chat-container {
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+            background-color: white;
+            border-radius: 8px;
             box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
         }
 
-        .header {
-            background-color: #075e54;
-            color: #fff;
-            padding: 15px;
+        #chat-header {
             text-align: center;
+            margin-bottom: 20px;
         }
 
-        .header input[type="file"] {
-            display: none;
-        }
-
-        .header label {
-            cursor: pointer;
-            display: inline-block;
-        }
-
-        .header img {
-            width: 60px;
-            height: 60px;
-            border-radius: 50%;
-            border: 2px solid #fff;
-        }
-
-        .messages {
-            flex: 1;
-            padding: 15px;
-            overflow-y: auto;
-            background-color: #e5ddd5;
-        }
-
-        .message {
-            margin-bottom: 10px;
-            display: flex;
-            flex-direction: column;
-            align-items: flex-start;
-        }
-
-        .message.user {
-            align-items: flex-end;
-        }
-
-        .message .text {
-            background-color: #dcf8c6;
-            padding: 10px;
-            border-radius: 10px;
-            max-width: 70%;
-            word-wrap: break-word;
-        }
-
-        .message.user .text {
-            background-color: #fff;
-        }
-
-        .message .time {
-            font-size: 12px;
-            color: #666;
-            margin-top: 5px;
-        }
-
-        .footer {
-            padding: 10px;
-            background-color: #f0f0f0;
-            border-top: 1px solid #ddd;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-        }
-
-        .footer input {
-            padding: 10px;
-            border: 1px solid #ccc;
-            border-radius: 20px;
+        #chat-header img {
             width: 100%;
+            border-radius: 8px;
         }
 
-        .footer button {
-            background-color: #075e54;
-            color: #fff;
-            border: none;
+        #chat-messages {
+            max-height: 300px;
+            overflow-y: auto;
+            margin-bottom: 20px;
+            padding-right: 10px;
+        }
+
+        #chat-messages div {
+            margin-bottom: 10px;
+            padding: 5px;
+            background-color: #f0f0f0;
+            border-radius: 8px;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 10px;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+            font-size: 16px;
+        }
+
+        button {
             padding: 10px 20px;
-            border-radius: 20px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
             cursor: pointer;
         }
 
-        .footer button:hover {
-            background-color: #054d43;
+        button:hover {
+            background-color: #0056b3;
         }
     </style>
 </head>
 <body>
+    <div id="chat-container">
+        <div id="chat-header">
+            <img src="iconF.png" alt="Chat Image">
+        </div>
 
-<div class="container">
-    <!-- Шапка с загрузкой иконки -->
-    <div class="header">
-        <label for="iconUpload">
-            <img id="userIcon" src="iconF.png" alt="Иконка">
-        </label>
-        <input type="file" id="iconUpload" accept="image/*">
+        <div id="chat-messages">
+            <!-- Сообщения чата будут отображаться здесь -->
+        </div>
+
+        <input type="text" id="nickname" placeholder="Введите ваш ник (один раз)">
+        <input type="text" id="message" placeholder="Введите сообщение">
+        <button onclick="sendMessage()">Отправить</button>
     </div>
 
-    <!-- Область сообщений -->
-    <div class="messages" id="messages"></div>
+    <script src="https://www.gstatic.com/firebasejs/9.8.3/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.8.3/firebase-firestore.js"></script>
+    <script>
+        // Ваши данные для Firebase
+        const firebaseConfig = {
+          apiKey: "AIzaSyDie9agtNmtRwY49xhQATC2FqXFWFOhdX4",
+          authDomain: "torrentforum-f72e3.firebaseapp.com",
+          databaseURL: "https://torrentforum-f72e3-default-rtdb.firebaseio.com",
+          projectId: "torrentforum-f72e3",
+          storageBucket: "torrentforum-f72e3.firebasestorage.app",
+          messagingSenderId: "492363581931",
+          appId: "1:492363581931:web:4da27597c5fa278ec8b1ae",
+          measurementId: "G-S0G0T4EHF7"
+        };
 
-    <!-- Нижняя часть с ником и полем ввода -->
-    <div class="footer">
-        <input type="text" id="nicknameInput" placeholder="Введите ваш ник...">
-        <input type="text" id="messageInput" placeholder="Введите ваше сообщение..." disabled>
-        <button id="sendButton" disabled>Отправить</button>
-    </div>
-</div>
+        // Инициализация Firebase
+        const app = firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore(app);
 
-<script>
-    const messagesDiv = document.getElementById('messages');
-    const nicknameInput = document.getElementById('nicknameInput');
-    const messageInput = document.getElementById('messageInput');
-    const sendButton = document.getElementById('sendButton');
-    const iconUpload = document.getElementById('iconUpload');
-    const userIcon = document.getElementById('userIcon');
+        let userNickname = localStorage.getItem('nickname');
 
-    let nickname = null;
-    let icon = 'https://via.placeholder.com/60';
-
-    // Подключение к WebSocket-серверу
-    const ws = new WebSocket('ws://localhost:8080');
-
-    ws.onopen = () => {
-        console.log('Подключено к серверу');
-    };
-
-    ws.onmessage = (event) => {
-        const data = JSON.parse(event.data);
-        if (data.type === 'history') {
-            // Отображение истории сообщений
-            data.data.forEach(msg => {
-                addMessage(msg.nickname, msg.text, msg.icon);
-            });
-        } else if (data.type === 'message') {
-            // Отображение нового сообщения
-            addMessage(data.data.nickname, data.data.text, data.data.icon);
+        // Функция для загрузки сообщений из Firestore
+        function loadMessages() {
+            db.collection("messages").orderBy("timestamp")
+                .onSnapshot((snapshot) => {
+                    const messagesContainer = document.getElementById('chat-messages');
+                    messagesContainer.innerHTML = ''; // Очистить предыдущие сообщения
+                    snapshot.forEach((doc) => {
+                        const message = doc.data();
+                        const messageElement = document.createElement('div');
+                        messageElement.textContent = `${message.nickname}: ${message.text}`;
+                        messagesContainer.appendChild(messageElement);
+                    });
+                    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+                });
         }
-    };
 
-    // Загрузка иконки
-    iconUpload.addEventListener('change', (e) => {
-        const file = e.target.files[0];
-        if (file) {
-            const reader = new FileReader();
-            reader.onload = (event) => {
-                icon = event.target.result;
-                userIcon.src = icon;
-            };
-            reader.readAsDataURL(file);
-        }
-    });
+        // Функция для отправки сообщения
+        function sendMessage() {
+            const messageInput = document.getElementById('message');
+            const messageText = messageInput.value;
+            const nicknameInput = document.getElementById('nickname');
+            const nickname = nicknameInput.value || userNickname;
 
-    // Ввод ника
-    nicknameInput.addEventListener('input', () => {
-        if (nicknameInput.value.trim() !== '') {
-            messageInput.disabled = false;
-            sendButton.disabled = false;
-        } else {
-            messageInput.disabled = true;
-            sendButton.disabled = true;
-        }
-    });
+            if (nickname && messageText) {
+                // Сохраняем никнейм в localStorage (если это первый раз)
+                if (!userNickname) {
+                    localStorage.setItem('nickname', nickname);
+                    userNickname = nickname;
+                }
 
-    // Отправка сообщения
-    sendButton.addEventListener('click', () => {
-        const messageText = messageInput.value.trim();
-        if (messageText) {
-            if (!nickname) {
-                nickname = nicknameInput.value.trim();
-                nicknameInput.disabled = true;
+                db.collection("messages").add({
+                    nickname: nickname,
+                    text: messageText,
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                });
+
+                messageInput.value = ''; // Очистить поле ввода сообщения
+            } else {
+                alert("Введите ник и сообщение.");
             }
-
-            const message = { nickname, text: messageText, icon };
-            ws.send(JSON.stringify(message)); // Отправка сообщения на сервер
-            messageInput.value = '';
         }
-    });
 
-    // Отправка по нажатию Enter
-    messageInput.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') {
-            sendButton.click();
-        }
-    });
-
-    // Функция добавления сообщения
-    function addMessage(nickname, text, icon) {
-        const messageElement = document.createElement('div');
-        messageElement.classList.add('message');
-        messageElement.innerHTML = `
-            <div class="text">${text}</div>
-            <div class="time">${new Date().toLocaleTimeString()}</div>
-        `;
-        messagesDiv.appendChild(messageElement);
-        messagesDiv.scrollTop = messagesDiv.scrollHeight;
-    }
-</script>
-
+        // Загрузить сообщения при загрузке страницы
+        loadMessages();
+    </script>
 </body>
 </html>
