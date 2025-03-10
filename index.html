@@ -3,8 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WhatsApp-подобный чат</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <title>Многопользовательский чат</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -32,20 +31,23 @@
             background-color: #075e54;
             color: #fff;
             padding: 15px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
+            text-align: center;
+        }
+
+        .header input[type="file"] {
+            display: none;
+        }
+
+        .header label {
+            cursor: pointer;
+            display: inline-block;
         }
 
         .header img {
-            width: 40px;
-            height: 40px;
+            width: 60px;
+            height: 60px;
             border-radius: 50%;
-        }
-
-        .header span {
-            font-size: 18px;
-            font-weight: bold;
+            border: 2px solid #fff;
         }
 
         .messages {
@@ -84,22 +86,23 @@
             margin-top: 5px;
         }
 
-        .input-area {
-            display: flex;
+        .footer {
             padding: 10px;
             background-color: #f0f0f0;
             border-top: 1px solid #ddd;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
         }
 
-        .input-area input {
-            flex: 1;
+        .footer input {
             padding: 10px;
             border: 1px solid #ccc;
             border-radius: 20px;
-            margin-right: 10px;
+            width: 100%;
         }
 
-        .input-area button {
+        .footer button {
             background-color: #075e54;
             color: #fff;
             border: none;
@@ -108,56 +111,28 @@
             cursor: pointer;
         }
 
-        .input-area button:hover {
+        .footer button:hover {
             background-color: #054d43;
-        }
-
-        .icon-picker {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-            padding: 15px;
-            background-color: #fff;
-            border-bottom: 1px solid #ddd;
-        }
-
-        .icon-picker i {
-            font-size: 24px;
-            cursor: pointer;
-            padding: 10px;
-            border-radius: 50%;
-            transition: background-color 0.3s;
-        }
-
-        .icon-picker i:hover {
-            background-color: #f0f0f0;
         }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <!-- Шапка с иконкой и ником -->
+    <!-- Шапка с загрузкой иконки -->
     <div class="header">
-        <img id="userIcon" src="iconF.png" alt="Иконка">
-        <span id="username">Чат</span>
+        <label for="iconUpload">
+            <img id="userIcon" src="iconF.png" alt="Иконка">
+        </label>
+        <input type="file" id="iconUpload" accept="image/*">
     </div>
 
     <!-- Область сообщений -->
     <div class="messages" id="messages"></div>
 
-    <!-- Выбор иконки -->
-    <div class="icon-picker" id="iconPicker">
-        <i class="fas fa-smile" data-icon="😊"></i>
-        <i class="fas fa-heart" data-icon="❤️"></i>
-        <i class="fas fa-star" data-icon="⭐"></i>
-        <i class="fas fa-thumbs-up" data-icon="👍"></i>
-        <i class="fas fa-flag" data-icon="🚩"></i>
-        <i class="fas fa-rocket" data-icon="🚀"></i>
-    </div>
-
-    <!-- Поле ввода и кнопка отправки -->
-    <div class="input-area">
+    <!-- Нижняя часть с ником и полем ввода -->
+    <div class="footer">
+        <input type="text" id="nicknameInput" placeholder="Введите ваш ник...">
         <input type="text" id="messageInput" placeholder="Введите ваше сообщение..." disabled>
         <button id="sendButton" disabled>Отправить</button>
     </div>
@@ -165,61 +140,71 @@
 
 <script>
     const messagesDiv = document.getElementById('messages');
+    const nicknameInput = document.getElementById('nicknameInput');
     const messageInput = document.getElementById('messageInput');
     const sendButton = document.getElementById('sendButton');
+    const iconUpload = document.getElementById('iconUpload');
     const userIcon = document.getElementById('userIcon');
-    const usernameSpan = document.getElementById('username');
-    const iconPicker = document.getElementById('iconPicker');
 
-    let nickname = localStorage.getItem('nickname') || null;
-    let icon = localStorage.getItem('icon') || 'https://via.placeholder.com/40';
-    let messages = JSON.parse(localStorage.getItem('messages')) || [];
+    let nickname = null;
+    let icon = 'https://via.placeholder.com/60';
 
-    // Восстановление данных при загрузке страницы
-    if (nickname) {
-        usernameSpan.textContent = nickname;
-        userIcon.src = icon;
-        messageInput.disabled = false;
-        sendButton.disabled = false;
-    }
+    // Подключение к WebSocket-серверу
+    const ws = new WebSocket('ws://localhost:8080');
 
-    // Отображение сохраненных сообщений
-    messages.forEach(msg => {
-        addMessage(msg.nickname, msg.text, msg.icon);
+    ws.onopen = () => {
+        console.log('Подключено к серверу');
+    };
+
+    ws.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+        if (data.type === 'history') {
+            // Отображение истории сообщений
+            data.data.forEach(msg => {
+                addMessage(msg.nickname, msg.text, msg.icon);
+            });
+        } else if (data.type === 'message') {
+            // Отображение нового сообщения
+            addMessage(data.data.nickname, data.data.text, data.data.icon);
+        }
+    };
+
+    // Загрузка иконки
+    iconUpload.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                icon = event.target.result;
+                userIcon.src = icon;
+            };
+            reader.readAsDataURL(file);
+        }
     });
 
-    // Прокрутка чата вниз
-    messagesDiv.scrollTop = messagesDiv.scrollHeight;
-
-    // Выбор иконки
-    iconPicker.querySelectorAll('i').forEach(iconElement => {
-        iconElement.addEventListener('click', () => {
-            if (!nickname) {
-                nickname = prompt('Введите ваш ник:');
-                if (nickname) {
-                    localStorage.setItem('nickname', nickname);
-                    usernameSpan.textContent = nickname;
-                    messageInput.disabled = false;
-                    sendButton.disabled = false;
-                }
-            }
-            icon = iconElement.getAttribute('data-icon');
-            userIcon.src = `https://via.placeholder.com/40?text=${encodeURIComponent(icon)}`;
-            localStorage.setItem('icon', icon);
-        });
+    // Ввод ника
+    nicknameInput.addEventListener('input', () => {
+        if (nicknameInput.value.trim() !== '') {
+            messageInput.disabled = false;
+            sendButton.disabled = false;
+        } else {
+            messageInput.disabled = true;
+            sendButton.disabled = true;
+        }
     });
 
     // Отправка сообщения
     sendButton.addEventListener('click', () => {
         const messageText = messageInput.value.trim();
         if (messageText) {
-            const message = { nickname, text: messageText, icon };
-            messages.push(message);
-            localStorage.setItem('messages', JSON.stringify(messages));
+            if (!nickname) {
+                nickname = nicknameInput.value.trim();
+                nicknameInput.disabled = true;
+            }
 
-            addMessage(nickname, messageText, icon);
+            const message = { nickname, text: messageText, icon };
+            ws.send(JSON.stringify(message)); // Отправка сообщения на сервер
             messageInput.value = '';
-            messagesDiv.scrollTop = messagesDiv.scrollHeight;
         }
     });
 
@@ -233,12 +218,13 @@
     // Функция добавления сообщения
     function addMessage(nickname, text, icon) {
         const messageElement = document.createElement('div');
-        messageElement.classList.add('message', 'user');
+        messageElement.classList.add('message');
         messageElement.innerHTML = `
             <div class="text">${text}</div>
             <div class="time">${new Date().toLocaleTimeString()}</div>
         `;
         messagesDiv.appendChild(messageElement);
+        messagesDiv.scrollTop = messagesDiv.scrollHeight;
     }
 </script>
 
