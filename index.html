@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Онлайн форма с чатом</title>
+    <title>WhatsApp-подобный чат</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -18,82 +19,145 @@
 
         .container {
             width: 400px;
+            height: 600px;
             background-color: #fff;
             border-radius: 10px;
             box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
             overflow: hidden;
         }
 
-        .icon {
-            text-align: center;
-            padding: 20px;
-            background-color: #007bff;
+        .header {
+            background-color: #075e54;
+            color: #fff;
+            padding: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
         }
 
-        .icon img {
-            width: 80px;
-            height: 80px;
+        .header img {
+            width: 40px;
+            height: 40px;
             border-radius: 50%;
         }
 
-        .chat {
-            padding: 20px;
-        }
-
-        .chat input {
-            width: 100%;
-            padding: 10px;
-            margin-bottom: 10px;
-            border: 1px solid #ccc;
-            border-radius: 5px;
-        }
-
-        .chat button {
-            width: 100%;
-            padding: 10px;
-            background-color: #007bff;
-            color: #fff;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-        }
-
-        .chat button:hover {
-            background-color: #0056b3;
+        .header span {
+            font-size: 18px;
+            font-weight: bold;
         }
 
         .messages {
-            max-height: 200px;
+            flex: 1;
+            padding: 15px;
             overflow-y: auto;
-            margin-bottom: 10px;
-            border: 1px solid #ccc;
-            padding: 10px;
-            border-radius: 5px;
+            background-color: #e5ddd5;
         }
 
         .message {
             margin-bottom: 10px;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
         }
 
-        .message .username {
-            font-weight: bold;
-            color: #007bff;
+        .message.user {
+            align-items: flex-end;
         }
 
         .message .text {
-            margin-left: 10px;
+            background-color: #dcf8c6;
+            padding: 10px;
+            border-radius: 10px;
+            max-width: 70%;
+            word-wrap: break-word;
+        }
+
+        .message.user .text {
+            background-color: #fff;
+        }
+
+        .message .time {
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
+        }
+
+        .input-area {
+            display: flex;
+            padding: 10px;
+            background-color: #f0f0f0;
+            border-top: 1px solid #ddd;
+        }
+
+        .input-area input {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 20px;
+            margin-right: 10px;
+        }
+
+        .input-area button {
+            background-color: #075e54;
+            color: #fff;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 20px;
+            cursor: pointer;
+        }
+
+        .input-area button:hover {
+            background-color: #054d43;
+        }
+
+        .icon-picker {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            padding: 15px;
+            background-color: #fff;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .icon-picker i {
+            font-size: 24px;
+            cursor: pointer;
+            padding: 10px;
+            border-radius: 50%;
+            transition: background-color 0.3s;
+        }
+
+        .icon-picker i:hover {
+            background-color: #f0f0f0;
         }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <div class="icon">
-        <img src="https://via.placeholder.com/80" alt="Иконка">
+    <!-- Шапка с иконкой и ником -->
+    <div class="header">
+        <img id="userIcon" src="iconF.png" alt="Иконка">
+        <span id="username">Чат</span>
     </div>
-    <div class="chat">
-        <div class="messages" id="messages"></div>
-        <input type="text" id="nicknameInput" placeholder="Введите ваш ник...">
+
+    <!-- Область сообщений -->
+    <div class="messages" id="messages"></div>
+
+    <!-- Выбор иконки -->
+    <div class="icon-picker" id="iconPicker">
+        <i class="fas fa-smile" data-icon="😊"></i>
+        <i class="fas fa-heart" data-icon="❤️"></i>
+        <i class="fas fa-star" data-icon="⭐"></i>
+        <i class="fas fa-thumbs-up" data-icon="👍"></i>
+        <i class="fas fa-flag" data-icon="🚩"></i>
+        <i class="fas fa-rocket" data-icon="🚀"></i>
+    </div>
+
+    <!-- Поле ввода и кнопка отправки -->
+    <div class="input-area">
         <input type="text" id="messageInput" placeholder="Введите ваше сообщение..." disabled>
         <button id="sendButton" disabled>Отправить</button>
     </div>
@@ -101,84 +165,81 @@
 
 <script>
     const messagesDiv = document.getElementById('messages');
-    const nicknameInput = document.getElementById('nicknameInput');
     const messageInput = document.getElementById('messageInput');
     const sendButton = document.getElementById('sendButton');
+    const userIcon = document.getElementById('userIcon');
+    const usernameSpan = document.getElementById('username');
+    const iconPicker = document.getElementById('iconPicker');
 
     let nickname = localStorage.getItem('nickname') || null;
+    let icon = localStorage.getItem('icon') || 'https://via.placeholder.com/40';
     let messages = JSON.parse(localStorage.getItem('messages')) || [];
 
-    // Восстановление ника и сообщений при загрузке страницы
+    // Восстановление данных при загрузке страницы
     if (nickname) {
-        nicknameInput.value = nickname;
-        nicknameInput.disabled = true;
+        usernameSpan.textContent = nickname;
+        userIcon.src = icon;
         messageInput.disabled = false;
         sendButton.disabled = false;
     }
 
     // Отображение сохраненных сообщений
     messages.forEach(msg => {
-        const messageElement = document.createElement('div');
-        messageElement.classList.add('message');
-        messageElement.innerHTML = `
-            <span class="username">${msg.nickname}:</span>
-            <span class="text">${msg.text}</span>
-        `;
-        messagesDiv.appendChild(messageElement);
+        addMessage(msg.nickname, msg.text, msg.icon);
     });
 
     // Прокрутка чата вниз
     messagesDiv.scrollTop = messagesDiv.scrollHeight;
 
-    // Обработчик ввода ника
-    nicknameInput.addEventListener('input', () => {
-        if (nicknameInput.value.trim() !== '') {
-            messageInput.disabled = false;
-            sendButton.disabled = false;
-        } else {
-            messageInput.disabled = true;
-            sendButton.disabled = true;
-        }
+    // Выбор иконки
+    iconPicker.querySelectorAll('i').forEach(iconElement => {
+        iconElement.addEventListener('click', () => {
+            if (!nickname) {
+                nickname = prompt('Введите ваш ник:');
+                if (nickname) {
+                    localStorage.setItem('nickname', nickname);
+                    usernameSpan.textContent = nickname;
+                    messageInput.disabled = false;
+                    sendButton.disabled = false;
+                }
+            }
+            icon = iconElement.getAttribute('data-icon');
+            userIcon.src = `https://via.placeholder.com/40?text=${encodeURIComponent(icon)}`;
+            localStorage.setItem('icon', icon);
+        });
     });
 
-    // Обработчик отправки сообщения
+    // Отправка сообщения
     sendButton.addEventListener('click', () => {
         const messageText = messageInput.value.trim();
-        if (messageText !== '') {
-            if (!nickname) {
-                nickname = nicknameInput.value.trim();
-                localStorage.setItem('nickname', nickname); // Сохраняем ник
-                nicknameInput.disabled = true; // Блокируем поле ввода ника
-            }
-
-            // Сохраняем сообщение
-            const message = { nickname, text: messageText };
+        if (messageText) {
+            const message = { nickname, text: messageText, icon };
             messages.push(message);
-            localStorage.setItem('messages', JSON.stringify(messages)); // Сохраняем сообщения
+            localStorage.setItem('messages', JSON.stringify(messages));
 
-            // Добавляем сообщение в чат
-            const messageElement = document.createElement('div');
-            messageElement.classList.add('message');
-            messageElement.innerHTML = `
-                <span class="username">${nickname}:</span>
-                <span class="text">${messageText}</span>
-            `;
-            messagesDiv.appendChild(messageElement);
-
-            // Очищаем поле ввода сообщения
+            addMessage(nickname, messageText, icon);
             messageInput.value = '';
-
-            // Прокручиваем чат вниз
             messagesDiv.scrollTop = messagesDiv.scrollHeight;
         }
     });
 
-    // Обработчик нажатия Enter в поле ввода сообщения
+    // Отправка по нажатию Enter
     messageInput.addEventListener('keypress', (e) => {
         if (e.key === 'Enter') {
             sendButton.click();
         }
     });
+
+    // Функция добавления сообщения
+    function addMessage(nickname, text, icon) {
+        const messageElement = document.createElement('div');
+        messageElement.classList.add('message', 'user');
+        messageElement.innerHTML = `
+            <div class="text">${text}</div>
+            <div class="time">${new Date().toLocaleTimeString()}</div>
+        `;
+        messagesDiv.appendChild(messageElement);
+    }
 </script>
 
 </body>
